@@ -1,0 +1,6 @@
+{
+  "name": "SKRP Construction ERP",
+  "description": "S.M. Khalilur Rahman Properties Ltd. — Construction Accounts, Project Cost Management, Contractor, Cash and Voucher Management ERP.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

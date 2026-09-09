@@ -1,0 +1,238 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #ffffff;
+    color: #0f172a;
+  }
+  html.dark body {
+    background-color: #0f172a;
+    color: #f8fafc;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Print Specific Rules for A4 Paper Cutting, Ledger & Receipt Printing */
+@media print {
+  /* Strictly hide UI navigation, sidebars, top headers, and action buttons in print */
+  header,
+  aside,
+  footer,
+  nav,
+  .print-hidden,
+  .print\:hidden,
+  [data-print-hidden="true"],
+  .no-print,
+  button:not(.print-show),
+  .btn:not(.print-show) {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* When Voucher Modal is active outside main, hide the background main page layout */
+  body:has(#voucher-modal-container) main,
+  body:has(#voucher-modal-container) footer,
+  body:has(#loan-statement-modal-container) header,
+  body:has(#loan-statement-modal-container) aside,
+  body:has(#loan-statement-modal-container) footer,
+  body:has(#contributor-statement-modal-container) header,
+  body:has(#contributor-statement-modal-container) aside,
+  body:has(#contributor-statement-modal-container) footer,
+  body:has(#receipt-register-modal-container) header,
+  body:has(#receipt-register-modal-container) aside,
+  body:has(#receipt-register-modal-container) footer,
+  body:has(#contractor-ledger-modal-container) header,
+  body:has(#contractor-ledger-modal-container) aside,
+  body:has(#contractor-ledger-modal-container) footer,
+  body:has(#supplier-ledger-modal-container) header,
+  body:has(#supplier-ledger-modal-container) aside,
+  body:has(#supplier-ledger-modal-container) footer,
+  body:has(#voucher-register-modal-container) header,
+  body:has(#voucher-register-modal-container) aside,
+  body:has(#voucher-register-modal-container) footer,
+  body:has(.printable-modal) header,
+  body:has(.printable-modal) aside,
+  body:has(.printable-modal) footer {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Reset body, html, root and all layout wrappers for 100% pure clean white paper */
+  html, 
+  body, 
+  #root, 
+  #root > div,
+  .min-h-screen,
+  div[class*="min-h-"] {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Force all background utility classes to white in print so dark theme NEVER prints black */
+  div[class*="bg-slate-"],
+  div[class*="bg-gray-"],
+  div[class*="bg-zinc-"],
+  div[class*="bg-neutral-"],
+  div[class*="bg-black"],
+  section[class*="bg-slate-"],
+  div[class*="backdrop-blur"] {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Force modal overlay to be standard inline clean block without dark backdrop */
+  .fixed.inset-0 {
+    position: static !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    display: block !important;
+  }
+
+  #voucher-modal-container,
+  #loan-statement-modal-container,
+  #contributor-statement-modal-container,
+  #receipt-register-modal-container,
+  #contractor-ledger-modal-container,
+  #supplier-ledger-modal-container,
+  #voucher-register-modal-container,
+  .printable-modal {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* Force A4 portrait page with 8mm margins */
+  @page {
+    size: A4 portrait;
+    margin: 6mm 8mm;
+  }
+
+  /* Receipt Card wrapper & styling */
+  .print-receipt-card {
+    background-color: #ffffff !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Explicit print styling for specific voucher elements */
+  .print-badge-dark {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-table-header {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-words-box {
+    background-color: #fefce8 !important;
+    border: 1px solid #fde047 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-amount-cell {
+    background-color: #f8fafc !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ensure all horizontal scrolling wrappers expand to full visible width during print */
+  .overflow-x-auto,
+  div[class*="overflow-x-"] {
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* General Ledger Print perfection - Never cut off running balance (চলমান স্থিতি) */
+  .ledger-print-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    font-size: 9px !important;
+    border-collapse: collapse !important;
+  }
+
+  .ledger-print-table th,
+  .ledger-print-table td {
+    padding: 3px 3px !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
+  .ledger-col-date { width: 11% !important; }
+  .ledger-col-voucher { width: 14% !important; }
+  .ledger-col-account { width: 13% !important; }
+  .ledger-col-particulars { width: 26% !important; }
+  .ledger-col-debit { width: 12% !important; text-align: right !important; }
+  .ledger-col-credit { width: 12% !important; text-align: right !important; }
+  .ledger-col-balance { width: 12% !important; text-align: right !important; }
+
+  /* Loan Statement Table Print perfection */
+  .loan-statement-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    font-size: 9.5px !important;
+    border-collapse: collapse !important;
+  }
+
+  .loan-statement-table th,
+  .loan-statement-table td {
+    padding: 3px 4px !important;
+    word-break: break-word !important;
+  }
+}
