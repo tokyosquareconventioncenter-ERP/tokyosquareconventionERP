@@ -468,10 +468,10 @@ export const VouchersView: React.FC<VouchersViewProps> = ({ onSelectVoucher }) =
                   {isBn ? (settings?.companyNameBn || 'এস. এম. খলিলুর রহমান প্রপার্টিজ লিঃ') : (settings?.companyName || 'S.M. KHALILUR RAHMAN PROPERTIES LTD.')}
                 </h1>
                 <p className="text-xs text-slate-700 font-medium mt-0.5">
-                  {isBn ? (settings?.addressBn || 'প্লট ১৪, জাপান গার্ডেন সিটি রোড, মোহাম্মদপুর, ঢাকা-১২০৭') : (settings?.address || 'Plot 14, Japan Garden City Road, Mohammadpur, Dhaka-1207')}
+                  {isBn ? (settings?.addressBn || settings?.address || '২১, ২২ দুর্গাবাড়ি রোড, ময়মনসিংহ') : (settings?.address || '21, 22 Durgabari Road, Mymensingh')}
                 </p>
                 <p className="text-[11px] text-slate-600">
-                  Phone: {settings?.phone || '01819-216503, 01711-536979'} | Email: {settings?.email || 'contact@skrpproperties.com'}
+                  Phone: {settings?.phone || '01672965561'} | Email: {settings?.email || 'info@skrpproperties.com'}
                 </p>
                 
                 <div className="inline-block mt-3 px-5 py-1.5 bg-slate-900 text-white text-xs sm:text-sm font-black tracking-wider uppercase rounded-md">

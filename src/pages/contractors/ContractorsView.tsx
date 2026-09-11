@@ -62,7 +62,7 @@ interface ContractorsViewProps {
 
 export const ContractorsView: React.FC<ContractorsViewProps> = ({ onOpenNewContractorPayment }) => {
   const { language } = useLanguage();
-  const { contractors, projects, addContractor, updateContractor, deleteContractor, selectedProjectId = 'ALL' } = useData();
+  const { contractors, projects, expenses, addContractor, updateContractor, deleteContractor, selectedProjectId = 'ALL' } = useData();
   const { isDark } = useTheme();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -175,7 +175,7 @@ export const ContractorsView: React.FC<ContractorsViewProps> = ({ onOpenNewContr
   const [billAmount, setBillAmount] = useState('');
   const [billDescription, setBillDescription] = useState('');
 
-  const { expenses, ledger, settings } = useData();
+  const { ledger, settings } = useData();
 
   const handleAddBillSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,6 +204,20 @@ export const ContractorsView: React.FC<ContractorsViewProps> = ({ onOpenNewContr
   const [projectId, setProjectId] = useState(projects[0]?.id || '');
   const [contractAmount, setContractAmount] = useState('');
 
+  // Helper function to dynamically compute financial metrics for a contractor
+  const getContractorMetrics = (c: Contractor) => {
+    const cExpenses = expenses.filter(e => 
+      !e.isDeleted && 
+      (e.contractorId === c.id || 
+       (e.paidTo && e.paidTo.trim().toLowerCase() === c.name.trim().toLowerCase()))
+    );
+    const paidAmount = cExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const contractAmount = (c.contractAmount && c.contractAmount > 0) ? c.contractAmount : (c.totalBill || 0);
+    const dueAmount = Math.max(0, contractAmount - paidAmount);
+    const percentPaid = contractAmount > 0 ? Math.min(100, Math.round((paidAmount / contractAmount) * 100)) : 0;
+    return { paidAmount, contractAmount, dueAmount, percentPaid };
+  };
+
   const filtered = contractors.filter(c => {
     if (filterProject !== 'ALL' && c.projectId && c.projectId !== filterProject) return false;
     if (searchQuery.trim()) {
@@ -218,9 +232,9 @@ export const ContractorsView: React.FC<ContractorsViewProps> = ({ onOpenNewContr
     return true;
   });
 
-  const totalContract = filtered.reduce((sum, c) => sum + c.contractAmount, 0);
-  const totalPaid = filtered.reduce((sum, c) => sum + c.paidAmount, 0);
-  const totalDue = filtered.reduce((sum, c) => sum + c.dueAmount, 0);
+  const totalContract = filtered.reduce((sum, c) => sum + getContractorMetrics(c).contractAmount, 0);
+  const totalPaid = filtered.reduce((sum, c) => sum + getContractorMetrics(c).paidAmount, 0);
+  const totalDue = filtered.reduce((sum, c) => sum + getContractorMetrics(c).dueAmount, 0);
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -369,9 +383,7 @@ export const ContractorsView: React.FC<ContractorsViewProps> = ({ onOpenNewContr
       {/* Grid of Contractors */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {filtered.map((contractor) => {
-          const percentPaid = contractor.contractAmount > 0 
-            ? Math.min(100, Math.round((contractor.paidAmount / contractor.contractAmount) * 100))
-            : 0;
+          const metrics = getContractorMetrics(contractor);
 
           return (
             <div 
@@ -424,14 +436,14 @@ export const ContractorsView: React.FC<ContractorsViewProps> = ({ onOpenNewContr
               <div className="space-y-1">
                 <div className="flex justify-between text-xs font-semibold">
                   <span className="text-slate-400">
-                    {isBn ? 'পরিশোধ সম্পন্ন' : 'Paid'}: <span className="font-mono text-emerald-400">{percentPaid}%</span>
+                    {isBn ? 'পরিশোধ সম্পন্ন' : 'Paid'}: <span className="font-mono text-emerald-400">{metrics.percentPaid}%</span>
                   </span>
                   <span className="text-rose-400 font-mono font-bold">
-                    {isBn ? 'বাকি' : 'Due'}: ৳{contractor.dueAmount.toLocaleString()}
+                    {isBn ? 'বাকি' : 'Due'}: ৳{metrics.dueAmount.toLocaleString()}
                   </span>
                 </div>
                 <div className="w-full h-2.5 bg-slate-700 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${percentPaid}%` }} />
+                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${metrics.percentPaid}%` }} />
                 </div>
               </div>
 
@@ -439,15 +451,15 @@ export const ContractorsView: React.FC<ContractorsViewProps> = ({ onOpenNewContr
               <div className="grid grid-cols-3 gap-2 text-center text-xs pt-2 border-t border-slate-700/60">
                 <div className="bg-slate-900/60 p-2 rounded-xl border border-slate-700/60">
                   <span className="text-[10px] text-slate-400 block">{isBn ? 'চুক্তি / বিল' : 'Contract/Bill'}</span>
-                  <span className="font-bold text-slate-200 font-mono">৳{(contractor.contractAmount / 1000).toFixed(0)}k</span>
+                  <span className="font-bold text-slate-200 font-mono">৳{metrics.contractAmount.toLocaleString()}</span>
                 </div>
                 <div className="bg-slate-900/60 p-2 rounded-xl border border-slate-700/60">
                   <span className="text-[10px] text-slate-400 block">{isBn ? 'পরিশোধিত' : 'Paid'}</span>
-                  <span className="font-bold text-emerald-400 font-mono">৳{(contractor.paidAmount / 1000).toFixed(0)}k</span>
+                  <span className="font-bold text-emerald-400 font-mono">৳{metrics.paidAmount.toLocaleString()}</span>
                 </div>
                 <div className="bg-slate-900/60 p-2 rounded-xl border border-slate-700/60">
                   <span className="text-[10px] text-slate-400 block">{isBn ? 'বকেয়া' : 'Due'}</span>
-                  <span className="font-bold text-rose-400 font-mono">৳{(contractor.dueAmount / 1000).toFixed(0)}k</span>
+                  <span className="font-bold text-rose-400 font-mono">৳{metrics.dueAmount.toLocaleString()}</span>
                 </div>
               </div>
 
@@ -971,20 +983,25 @@ export const ContractorsView: React.FC<ContractorsViewProps> = ({ onOpenNewContr
               </div>
 
               {/* Summary Bar */}
-              <div className="grid grid-cols-3 gap-3 text-center text-xs">
-                <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl">
-                  <span className="text-blue-600 font-medium block text-[11px]">{isBn ? 'মোট চুক্তি / রানিং বিল' : 'Total Contract/Bills'}</span>
-                  <span className="text-base font-black text-blue-900 font-mono mt-0.5 block">৳{ledgerModalContractor.contractAmount.toLocaleString()}</span>
-                </div>
-                <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl">
-                  <span className="text-emerald-600 font-medium block text-[11px]">{isBn ? 'মোট পরিশোধিত টাকা' : 'Total Paid'}</span>
-                  <span className="text-base font-black text-emerald-900 font-mono mt-0.5 block">৳{ledgerModalContractor.paidAmount.toLocaleString()}</span>
-                </div>
-                <div className="bg-rose-50 border border-rose-200 p-3 rounded-xl">
-                  <span className="text-rose-600 font-medium block text-[11px]">{isBn ? 'বর্তমান বকেয়া' : 'Current Due Balance'}</span>
-                  <span className="text-base font-black text-rose-900 font-mono mt-0.5 block">৳{ledgerModalContractor.dueAmount.toLocaleString()}</span>
-                </div>
-              </div>
+              {(() => {
+                const modalMetrics = getContractorMetrics(ledgerModalContractor);
+                return (
+                  <div className="grid grid-cols-3 gap-3 text-center text-xs">
+                    <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl">
+                      <span className="text-blue-600 font-medium block text-[11px]">{isBn ? 'মোট চুক্তি / রানিং বিল' : 'Total Contract/Bills'}</span>
+                      <span className="text-base font-black text-blue-900 font-mono mt-0.5 block">৳{modalMetrics.contractAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl">
+                      <span className="text-emerald-600 font-medium block text-[11px]">{isBn ? 'মোট পরিশোধিত টাকা' : 'Total Paid'}</span>
+                      <span className="text-base font-black text-emerald-900 font-mono mt-0.5 block">৳{modalMetrics.paidAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="bg-rose-50 border border-rose-200 p-3 rounded-xl">
+                      <span className="text-rose-600 font-medium block text-[11px]">{isBn ? 'বর্তমান বকেয়া' : 'Current Due Balance'}</span>
+                      <span className="text-base font-black text-rose-900 font-mono mt-0.5 block">৳{modalMetrics.dueAmount.toLocaleString()}</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Transactions Table */}
               <div>

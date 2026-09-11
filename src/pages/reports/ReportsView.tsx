@@ -75,7 +75,7 @@ export const ReportsView: React.FC = () => {
 
   const isBn = language === 'bn';
 
-  // Derived available months from expenses
+  // Derived available months from expenses and monthly bills
   const availableMonths = useMemo(() => {
     const set = new Set<string>();
     expenses.filter(e => !e.isDeleted).forEach(e => {
@@ -84,8 +84,16 @@ export const ReportsView: React.FC = () => {
         if (ym.length === 7) set.add(ym);
       }
     });
+    monthlyBills.forEach(b => {
+      if (b.date) {
+        const ym = b.date.substring(0, 7);
+        if (ym.length === 7) set.add(ym);
+      } else if (b.month && b.month.match(/^\d{4}-\d{2}$/)) {
+        set.add(b.month);
+      }
+    });
     return Array.from(set).sort().reverse();
-  }, [expenses]);
+  }, [expenses, monthlyBills]);
 
   const getMonthYearLabel = (ymStr: string) => {
     if (ymStr === 'ALL') return isBn ? 'সকল মাস ও বছর' : 'All Months & Years';
@@ -271,7 +279,7 @@ export const ReportsView: React.FC = () => {
             {activeReport === 'PROJECT_COST_SUMMARY' && (isBn ? 'প্রকল্পভিত্তিক মোট খরচ বিশ্লেষণ (Project Wise Cost Summary)' : 'Project Wise Cost Summary')}
             {activeReport === 'CONTRACTOR_BALANCE' && (isBn ? 'কন্ট্রাক্টর চুক্তি ও বকেয়া বিবরণী (Contractor Balance Sheet)' : 'Contractor Balance Sheet')}
             {activeReport === 'SUPPLIER_LEDGER' && (isBn ? 'সরবরাহকারী ক্রয় ও বকেয়া খতিয়ান (Supplier Purchase Ledger)' : 'Supplier Purchase Ledger')}
-            {activeReport === 'MONTHLY_BILL_REPORT' && (isBn ? 'মাসিক কোম্পানি ও স্টাফ খরচ (Monthly Overhead & Staff Bills)' : 'Monthly Overhead & Staff Bills')}
+            {activeReport === 'MONTHLY_BILL_REPORT' && (isBn ? `মাসিক কোম্পানি বিল ও নিয়মিত খরচ (${getMonthYearLabel(filterMonth)})` : `Monthly Company Expense Report (${getMonthYearLabel(filterMonth)})`)}
             {activeReport === 'INCOME_EXPENSE_SUMMARY' && (isBn ? 'সার্বিক আয়-ব্যয় তুলনামূলক বিবরণী (Income vs Expenditure Summary)' : 'Income vs Expenditure Summary')}
           </div>
           <div className="text-[11px] text-slate-700 font-mono mt-1">
@@ -688,59 +696,131 @@ export const ReportsView: React.FC = () => {
           </div>
         )}
 
-        {activeReport === 'MONTHLY_BILL_REPORT' && (
-          <div className="space-y-4">
-            <table className="w-full text-left text-xs border border-slate-300">
-              <thead className="bg-slate-100 text-slate-700 border-b border-slate-300 font-bold uppercase text-[10px]">
-                <tr>
-                  <th className="p-2 border-r border-slate-300">Voucher No</th>
-                  <th className="p-2 border-r border-slate-300">Month</th>
-                  <th className="p-2 border-r border-slate-300">Expense Category</th>
-                  <th className="p-2 border-r border-slate-300">Description</th>
-                  <th className="p-2 text-right border-r border-slate-300">Amount (BDT)</th>
-                  <th className="p-2 text-center print:hidden w-20">অ্যাকশন</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {monthlyBills.map((b) => (
-                  <tr key={b.id} className="hover:bg-slate-50">
-                    <td className="p-2 font-mono font-bold border-r border-slate-200">{b.voucherNumber}</td>
-                    <td className="p-2 font-semibold border-r border-slate-200">{b.month}</td>
-                    <td className="p-2 font-bold border-r border-slate-200">{b.expenseName}</td>
-                    <td className="p-2 border-r border-slate-200">{b.description}</td>
-                    <td className="p-2 text-right font-mono font-bold border-r border-slate-200">৳{b.amount.toLocaleString()}</td>
-                    <td className="p-2 text-center print:hidden">
-                      <button
-                        type="button"
-                        onClick={() => setDeleteConfirmItem({
-                          type: 'BILL',
-                          id: b.id,
-                          title: `${b.expenseName} (${b.month})`,
-                          amount: b.amount,
-                          voucherNumber: b.voucherNumber
-                        })}
-                        className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded text-[11px] font-bold inline-flex items-center gap-1 transition active:scale-95 shadow-2xs"
-                        title={isBn ? 'এই মাসিক বিলটি মুছে ফেলুন' : 'Delete this bill'}
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                        <span>{isBn ? 'মুছুন' : 'Delete'}</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-slate-100 font-bold border-t-2 border-slate-900">
-                <tr>
-                  <td colSpan={4} className="p-2 text-right uppercase">Total Monthly Bills:</td>
-                  <td className="p-2 text-right font-mono font-black text-sm border-r border-slate-300">
-                    ৳{monthlyBills.reduce((s, b) => s + b.amount, 0).toLocaleString()}
-                  </td>
-                  <td className="p-2 print:hidden"></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
+        {activeReport === 'MONTHLY_BILL_REPORT' && (() => {
+          const filteredBills = monthlyBills.filter(b => {
+            if (filterProject !== 'ALL' && b.projectId && b.projectId !== filterProject) return false;
+            if (filterMonth !== 'ALL') {
+              const bYm = b.date ? b.date.substring(0, 7) : (b.month && b.month.match(/^\d{4}-\d{2}$/) ? b.month : '');
+              if (bYm && bYm !== filterMonth) return false;
+              if (!bYm && b.month && !b.month.toLowerCase().includes(filterMonth.toLowerCase())) return false;
+            }
+            return true;
+          });
+
+          const totalAmount = filteredBills.reduce((s, b) => s + b.amount, 0);
+
+          return (
+            <div className="space-y-4">
+              {/* Controls Bar for Monthly Bill Report */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 print:hidden">
+                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                  
+                  {/* Month & Year Filter */}
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                    <Calendar className="w-4 h-4 text-amber-600" />
+                    <span>{isBn ? 'মাস ও বছর সিলেক্ট:' : 'Select Month & Year:'}</span>
+                    <select
+                      value={filterMonth}
+                      onChange={(e) => setFilterMonth(e.target.value)}
+                      className="bg-white border border-slate-300 text-slate-900 rounded-lg px-2.5 py-1.5 outline-none font-bold cursor-pointer text-xs"
+                    >
+                      <option value="ALL">{isBn ? 'সকল মাস ও বছর (All Months & Years)' : 'All Months & Years'}</option>
+                      {availableMonths.map(ym => (
+                        <option key={ym} value={ym}>
+                          {getMonthYearLabel(ym)} {ym === availableMonths[0] ? (isBn ? ' (রানিং)' : ' (Current)') : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Project Filter */}
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                    <Building2 className="w-4 h-4 text-cyan-600" />
+                    <span>{isBn ? 'প্রকল্প / শাখা:' : 'Project / Office:'}</span>
+                    <select
+                      value={filterProject}
+                      onChange={(e) => setFilterProject(e.target.value)}
+                      className="bg-white border border-slate-300 text-slate-900 rounded-lg px-2.5 py-1.5 outline-none font-bold cursor-pointer text-xs"
+                    >
+                      <option value="ALL">{isBn ? 'সকল প্রকল্প ও হেড অফিস' : 'All Projects & Head Office'}</option>
+                      {projects.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                </div>
+
+                <div className="text-xs font-bold text-slate-600">
+                  {isBn ? 'মোট বিল সংখ্যা:' : 'Total Records:'} <span className="text-slate-900 font-black">{filteredBills.length} টি</span>
+                </div>
+              </div>
+
+              {/* Table */}
+              {filteredBills.length === 0 ? (
+                <div className="text-center py-10 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 text-xs">
+                  {isBn ? 'মনোনীত মাস বা প্রজেক্টের জন্য কোনো বিলের রেকর্ড পাওয়া যায়নি।' : 'No monthly bill records found for the selected month or project.'}
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-slate-300 rounded-lg">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-100 text-slate-700 border-b border-slate-300 font-bold uppercase text-[10px]">
+                      <tr>
+                        <th className="p-2 border-r border-slate-300">#</th>
+                        <th className="p-2 border-r border-slate-300">{isBn ? 'ভাউচার নং' : 'Voucher No'}</th>
+                        <th className="p-2 border-r border-slate-300">{isBn ? 'মাস ও বছর' : 'Month & Year'}</th>
+                        <th className="p-2 border-r border-slate-300">{isBn ? 'খরচের খাত / নাম' : 'Expense Category'}</th>
+                        <th className="p-2 border-r border-slate-300">{isBn ? 'বিবরণ / নোট' : 'Description'}</th>
+                        <th className="p-2 text-right border-r border-slate-300">{isBn ? 'টাকা (BDT)' : 'Amount (BDT)'}</th>
+                        <th className="p-2 text-center print:hidden w-20">{isBn ? 'অ্যাকশন' : 'Action'}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {filteredBills.map((b, idx) => (
+                        <tr key={b.id} className="hover:bg-slate-50">
+                          <td className="p-2 text-slate-400 font-mono border-r border-slate-200">{idx + 1}</td>
+                          <td className="p-2 font-mono font-bold text-amber-800 border-r border-slate-200">{b.voucherNumber || '—'}</td>
+                          <td className="p-2 font-semibold border-r border-slate-200">{getMonthYearLabel(b.date ? b.date.substring(0, 7) : b.month)}</td>
+                          <td className="p-2 font-bold text-slate-900 border-r border-slate-200">{b.expenseName}</td>
+                          <td className="p-2 border-r border-slate-200">{b.description || '—'}</td>
+                          <td className="p-2 text-right font-mono font-bold text-slate-900 border-r border-slate-200">৳{b.amount.toLocaleString()}</td>
+                          <td className="p-2 text-center print:hidden">
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirmItem({
+                                type: 'BILL',
+                                id: b.id,
+                                title: `${b.expenseName} (${b.month})`,
+                                amount: b.amount,
+                                voucherNumber: b.voucherNumber
+                              })}
+                              className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded text-[11px] font-bold inline-flex items-center gap-1 transition active:scale-95 shadow-2xs cursor-pointer"
+                              title={isBn ? 'এই মাসিক বিলটি মুছে ফেলুন' : 'Delete this bill'}
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                              <span>{isBn ? 'মুছুন' : 'Delete'}</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-slate-100 font-bold border-t-2 border-slate-900">
+                      <tr>
+                        <td colSpan={5} className="p-2 text-right uppercase text-slate-800 font-black">
+                          {isBn ? 'সর্বমোট পরিশোধিত মাসিক বিল:' : 'Total Monthly Bills:'}
+                        </td>
+                        <td className="p-2 text-right font-mono font-black text-sm text-amber-900 border-r border-slate-300">
+                          ৳{totalAmount.toLocaleString()}
+                        </td>
+                        <td className="p-2 print:hidden"></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {activeReport === 'INCOME_EXPENSE_SUMMARY' && (
           <div className="space-y-6">
