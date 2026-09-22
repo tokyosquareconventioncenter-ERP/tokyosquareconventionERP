@@ -1,0 +1,39 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Project",
+      "description": "Construction projects managed by the ERP",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "location": { "type": "string" },
+        "budget": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "ERPDataset": {
+      "title": "ERPDataset",
+      "description": "Master synchronized ERP data snapshot including expenses, vouchers, cash/bank accounts, and ledgers",
+      "type": "object",
+      "properties": {
+        "version": { "type": "string" },
+        "company": { "type": "string" },
+        "exportedAt": { "type": "string" }
+      },
+      "required": ["version"]
+    }
+  },
+  "firestore": {
+    "/skrp_erp_data/master_dataset": {
+      "schema": "ERPDataset",
+      "description": "Real-time master ERP dataset synced across devices"
+    },
+    "/skrp_erp_data/connection_ping": {
+      "schema": "ERPDataset",
+      "description": "Connection test ping document"
+    }
+  }
+}
